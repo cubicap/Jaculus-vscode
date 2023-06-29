@@ -1,100 +1,97 @@
 {
-  "name": "jaculus",
-  "displayName": "Jaculus",
-  "description": "Jaculus allows you to run JavaScript code on embedded platforms.",
-  "version": "0.0.2",
-  "engines": {
-    "vscode": "^1.79.0"
-  },
-  "publisher": "RoboticsBrno",
-  "pricing": "Free",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/RoboticsBrno/Jaculus-vscode"
-  },
-  "author": {
-    "name": "RoboticsBrno",
-    "email": "info@robotikabrno.cz",
-    "url": "https://robotikabrno.cz",
-    "description": "Robotárna is a unique mix of a tech lab and a place of technical education. We deeply care about exposing our students to engineering principles and building mental frameworks of technical thinking and communication."
-  },
-  "icon": "images/icon.png",
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "jaculus.Build",
-        "title": "Build",
-        "category": "Jaculus"
-      },
-      {
-        "command": "jaculus.Flash",
-        "title": "Flash",
-        "category": "Jaculus"
-      },
-      {
-        "command": "jaculus.Monitor",
-        "title": "Monitor",
-        "category": "Jaculus"
-      },
-      {
-        "command": "jaculus.SelectComPort",
-        "title": "Select COM port",
-        "category": "Jaculus"
-      }
+    "name": "jaculus",
+    "displayName": "Jaculus",
+    "description": "Jaculus allows for running JavaScript code on embedded devices.",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.72.0"
+    },
+    "publisher": "cubicap",
+    "pricing": "Free",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cubicap/Jaculus-vscode.git"
+    },
+    "author": {
+        "name": "Petr Kubica (cubicap)",
+        "email": "cubicap@email.cz"
+    },
+    "icon": "images/icon.png",
+    "categories": [
+        "Other"
     ],
-    "keybindings": [
-      {
-        "command": "jaculus.Build",
-        "key": "ctrl+alt+b",
-        "mac": "cmd+ctrl+b"
-      },
-      {
-        "command": "jaculus.Flash",
-        "key": "ctrl+alt+u",
-        "mac": "cmd+ctrl+u"
-
-      },
-      {
-        "command": "jaculus.Monitor",
-        "key": "ctrl+alt+m",
-        "mac": "cmd+ctrl+m"
-      },
-      {
-        "command": "jaculus.SelectComPort",
-        "key": "ctrl+alt+p",
-        "mac": "cmd+ctrl+p"
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
-  },
-  "devDependencies": {
-    "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.1",
-    "@types/node": "16.x",
-    "@types/vscode": "^1.79.0",
-    "@typescript-eslint/eslint-plugin": "^5.59.1",
-    "@typescript-eslint/parser": "^5.59.1",
-    "@vscode/test-electron": "^2.3.0",
-    "eslint": "^8.39.0",
-    "glob": "^8.1.0",
-    "mocha": "^10.2.0",
-    "typescript": "^5.0.4"
-  },
-  "dependencies": {
-    "child_process": "^1.0.2"
-  }
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "jaculus.Build",
+                "title": "Build",
+                "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.Flash",
+                "title": "Flash",
+                "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.Monitor",
+                "title": "Monitor",
+                "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.SelectComPort",
+                "title": "Select COM port",
+                "category": "Jaculus"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "jaculus.Build",
+                "key": "ctrl+alt+b",
+                "mac": "cmd+ctrl+b"
+            },
+            {
+                "command": "jaculus.Flash",
+                "key": "ctrl+alt+u",
+                "mac": "cmd+ctrl+u"
+            },
+            {
+                "command": "jaculus.Monitor",
+                "key": "ctrl+alt+m",
+                "mac": "cmd+ctrl+m"
+            },
+            {
+                "command": "jaculus.SelectComPort",
+                "key": "ctrl+alt+p",
+                "mac": "cmd+ctrl+p"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^8.1.0",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "^16.18.37",
+        "@types/vscode": "^1.72.0",
+        "@typescript-eslint/eslint-plugin": "^5.60.1",
+        "@typescript-eslint/parser": "^5.60.1",
+        "@vscode/test-electron": "^2.3.0",
+        "eslint": "^8.39.0",
+        "glob": "^8.1.0",
+        "mocha": "^10.2.0",
+        "typescript": "^5.1.6"
+    },
+    "dependencies": {
+        "child_process": "^1.0.2"
+    }
 }
