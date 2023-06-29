@@ -6,7 +6,7 @@ import { exec } from 'child_process';
 type SerialPortInfo = {
     path: string;
     manufacturer?: string;
-  }
+};
 
 class JaculusInterface {
     private selectComPortBtn: vscode.StatusBarItem | null = null;
@@ -77,7 +77,7 @@ class JaculusInterface {
 			}
 			if (stderr) {
 				vscode.window.showErrorMessage(`Jaculus Error: ${stderr}`);
-				return
+				return;
 			}
 			return stdout;
 		});
