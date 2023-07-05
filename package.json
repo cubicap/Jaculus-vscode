@@ -45,6 +45,26 @@
                 "command": "jaculus.SetLogLevel",
                 "title": "Set Log Level",
                 "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.Start",
+                "title": "Start a program",
+                "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.Stop",
+                "title": "Stop a program",
+                "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.ShowVersion",
+                "title": "Show version",
+                "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.ShowStatus",
+                "title": "Show status",
+                "category": "Jaculus"
             }
         ],
         "keybindings": [
