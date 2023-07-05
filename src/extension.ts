@@ -8,16 +8,23 @@ type SerialPortInfo = {
     manufacturer?: string;
 };
 
+enum LogLevel {
+	info = "info",
+	verbose = "verbose",
+	debug = "debug",
+	silly = "silly"
+}
+
 class JaculusInterface {
     private selectComPortBtn: vscode.StatusBarItem | null = null;
 	private selectedPort: string | null = null;
     private terminalJaculus: vscode.Terminal | null = null;
-	private debugMode: boolean = false;
+	private debugMode: LogLevel = LogLevel.info;
     private debugBtn: vscode.StatusBarItem | null = null;
 
     constructor(private context: vscode.ExtensionContext, private extensionPath: string, private jacToolCommand: string = "jac") {
 		this.selectedPort = this.context.globalState.get("selectedPort") || null; // if port is selected from previous session, find it
-		this.debugMode = this.context.globalState.get("debugMode") || false; // if debug mode is selected from previous session, find it
+		this.debugMode = this.context.globalState.get("debugMode") || LogLevel.info; // if debug mode is selected from previous session, find it
 		this.terminalJaculus = vscode.window.terminals.find(terminal => terminal.name === 'Jaculus') || null; // if terminal is opened from previous session, find it
 		vscode.window.onDidCloseTerminal((closedTerminal) => {
 			if (this.terminalJaculus === closedTerminal) {
@@ -93,24 +100,24 @@ class JaculusInterface {
 			});
 		}
 
-		if (this.debugMode) {
-            args.push('--log-level', 'silly');
+		if (this.debugMode != LogLevel.info) {
+			const str : string = LogLevel[this.debugMode];
+            args.push('--log-level', str);
         }
 
 		this.terminalJaculus.show();
 		this.terminalJaculus.sendText(`${this.jacToolCommand} ${command} ${args.join(' ')}`, true);
 	}
 
-    public toggleDebug() {
-        this.debugMode = !this.debugMode;
-		if(this.debugBtn) {
-			this.debugBtn.text = this.debugMode ? "$(bug)  On" : "$(bug) Off";
-			this.debugBtn.tooltip = this.debugMode ? "Jaculus Debug Mode On" : "Jaculus Debug Mode Off";
-			this.debugBtn.color = this.debugMode ? "#cc4408" : "#ff8500";
-			this.debugBtn.show();
-		}
-		this.context.globalState.update("debugMode", this.debugMode);
+	private async selectLogLevel() {
+		let items = Object.keys(LogLevel);
+		vscode.window.showQuickPick(items).then(selected => {
+			if (selected) {
+				this.debugMode = LogLevel[selected as keyof typeof LogLevel];
+			}
+		});
     }
+
 
 	private parseSerialPorts(input: string): SerialPortInfo[] {
 		const result: SerialPortInfo[] = [];
@@ -161,18 +168,11 @@ class JaculusInterface {
 		this.selectComPortBtn.show();
 
 		let buildBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-		buildBtn.command = "jaculus.Build";
-		buildBtn.text = "$(gear) Build";
-		buildBtn.tooltip = "Jaculus Build";
+		buildBtn.command = "jaculus.BuildFlash";
+		buildBtn.text = "$(gear) Build and Flash";
+		buildBtn.tooltip = "Jaculus Build and Flash";
 		buildBtn.color = "#ff8500";
 		buildBtn.show();
-
-		let flashBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-		flashBtn.command = "jaculus.Flash";
-		flashBtn.text = "$(rocket) Flash";
-		flashBtn.tooltip = "Jaculus Flash";
-		flashBtn.color = "#ff8500";
-		flashBtn.show();
 
 		let monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 		monitorBtn.command = "jaculus.Monitor";
@@ -182,19 +182,11 @@ class JaculusInterface {
 
 		monitorBtn.show();
 
-		this.debugBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-        this.debugBtn.command = "jaculus.ToggleDebug";
-        this.debugBtn.text = "$(bug) Off";
-		this.debugBtn.tooltip = "Jaculus Debug Mode Off";
-		this.debugBtn.color = "#ff8500";
-        this.debugBtn.show();
-
         this.context.subscriptions.push(
             vscode.commands.registerCommand('jaculus.SelectComPort', () => this.selectComPort()),
-            vscode.commands.registerCommand('jaculus.Build', () => this.build()),
-            vscode.commands.registerCommand('jaculus.Flash', () => this.flash()),
+            vscode.commands.registerCommand('jaculus.BuildFlash', () => { this.build(); this.flash() }),
             vscode.commands.registerCommand('jaculus.Monitor', () => this.monitor()),
-			vscode.commands.registerCommand('jaculus.ToggleDebug', () => this.toggleDebug()),
+			vscode.commands.registerCommand('jaculus.SetLogLevel', () => this.selectLogLevel()),
         );
     }
 }
