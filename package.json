@@ -27,13 +27,8 @@
     "contributes": {
         "commands": [
             {
-                "command": "jaculus.Build",
-                "title": "Build",
-                "category": "Jaculus"
-            },
-            {
-                "command": "jaculus.Flash",
-                "title": "Flash",
+                "command": "jaculus.BuildFlash",
+                "title": "Build and Flash",
                 "category": "Jaculus"
             },
             {
@@ -45,18 +40,18 @@
                 "command": "jaculus.SelectComPort",
                 "title": "Select COM port",
                 "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.SetLogLevel",
+                "title": "Set Log Level",
+                "category": "Jaculus"
             }
         ],
         "keybindings": [
             {
-                "command": "jaculus.Build",
+                "command": "jaculus.BuildFlash",
                 "key": "ctrl+alt+b",
                 "mac": "cmd+ctrl+b"
-            },
-            {
-                "command": "jaculus.Flash",
-                "key": "ctrl+alt+u",
-                "mac": "cmd+ctrl+u"
             },
             {
                 "command": "jaculus.Monitor",
