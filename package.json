@@ -27,13 +27,23 @@
     "contributes": {
         "commands": [
             {
-                "command": "jaculus.BuildFlash",
-                "title": "Build and Flash",
+                "command": "jaculus.Build",
+                "title": "Build",
+                "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.Flash",
+                "title": "Flash",
                 "category": "Jaculus"
             },
             {
                 "command": "jaculus.Monitor",
                 "title": "Monitor",
+                "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.BuildFlashMonitor",
+                "title": "Build, Flash and Monitor",
                 "category": "Jaculus"
             },
             {
@@ -74,7 +84,7 @@
         ],
         "keybindings": [
             {
-                "command": "jaculus.BuildFlash",
+                "command": "jaculus.BuildFlashMonitor",
                 "key": "ctrl+alt+b",
                 "mac": "cmd+ctrl+b"
             },
