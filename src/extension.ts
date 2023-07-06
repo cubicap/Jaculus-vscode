@@ -22,7 +22,7 @@ class JaculusInterface {
 	private debugMode: LogLevel = LogLevel.info;
     private monitoring: boolean = false;
 
-    constructor(private context: vscode.ExtensionContext, private extensionPath: string, private jacToolCommand: string = "jac") {
+    constructor(private context: vscode.ExtensionContext, private extensionPath: string, private jacToolCommand: string) {
 		this.selectedPort = this.context.globalState.get("selectedPort") || null; // if port is selected from previous session, find it
 		this.debugMode = this.context.globalState.get("debugMode") || LogLevel.info; // if debug mode is selected from previous session, find it
 		this.terminalJaculus = vscode.window.terminals.find(terminal => terminal.name === 'Jaculus') || null; // if terminal is opened from previous session, find it
@@ -34,7 +34,7 @@ class JaculusInterface {
 	}
 
     private async selectComPort() {
-		exec('jac list-ports', (error, stdout, stderr) => {
+		exec(`${this.jacToolCommand} list-ports`, (error, stdout, stderr) => {
 			if (error) {
 				vscode.window.showErrorMessage(`Error: ${error.message}`);
 				return;
@@ -197,7 +197,7 @@ class JaculusInterface {
 
 	private async checkJaculusInstalled(): Promise<boolean> {
 		return new Promise<boolean>((resolve) => {
-			exec('jac', (err, stdout, stderr) => {
+			exec(this.jacToolCommand, (err, stdout, stderr) => {
 				if (err || stderr) {
 					resolve(false);
 				}
@@ -277,7 +277,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
 		const path = vscode.workspace.workspaceFolders[0].uri.fsPath;
-		const jaculus = new JaculusInterface(context, path, 'jac');
+		const jaculus = new JaculusInterface(context, path, 'npx jac');
     	await jaculus.registerCommands();
 	} else {
 		// vscode.window.showErrorMessage('Jaculus: No workspace folder found');
