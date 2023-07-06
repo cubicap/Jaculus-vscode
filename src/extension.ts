@@ -110,6 +110,12 @@ class JaculusInterface {
 		this.runJaculusCommandInTerminal('status', ["--port", this.selectedPort!], this.extensionPath);
 	}
 
+	private async format() {
+		this.checkConnectedPort();
+		await this.stopRunningMonitor();
+		this.runJaculusCommandInTerminal('format', ["--port", this.selectedPort!], this.extensionPath);
+	}
+
 	private runJaculusCommand(command: string, args: string[], cwd: string): void {
 		exec(`${this.jacToolCommand} ${command} ${args.join(' ')}`, { cwd }, (error, stdout, stderr) => {
 			if (error) {
@@ -255,6 +261,7 @@ class JaculusInterface {
 			vscode.commands.registerCommand('jaculus.Stop', () => this.stop()),
 			vscode.commands.registerCommand('jaculus.ShowVersion', () => this.showVersion()),
 			vscode.commands.registerCommand('jaculus.ShowStatus', () => this.showStatus()),
+			vscode.commands.registerCommand('jaculus.Format', () => this.format()),
         );
     }
 }
