@@ -62,14 +62,20 @@ class JaculusInterface {
 
     public async flash() {
 		this.checkConnectedPort();
-		this.stopRunningMonitor();
+		await this.stopRunningMonitor();
         this.runJaculusCommandInTerminal('flash', ["--port", this.selectedPort!], this.extensionPath);
     }
 
     public async monitor() {
 		this.checkConnectedPort();
-		this.stopRunningMonitor();
+		await this.stopRunningMonitor();
 		this.runJaculusCommandInTerminal('monitor', ["--port", this.selectedPort!], this.extensionPath);
+    }
+
+    public async buildFlashMonitor() {
+		this.checkConnectedPort();
+		await this.stopRunningMonitor();
+		this.runJaculusCommandInTerminal('build flash monitor', ["--port", this.selectedPort!], this.extensionPath);
 		this.monitoring = true;
     }
 
@@ -82,25 +88,25 @@ class JaculusInterface {
 
 	private async start() {
 		this.checkConnectedPort();
-		this.stopRunningMonitor();
+		await this.stopRunningMonitor();
 		this.runJaculusCommandInTerminal('start', ["--port", this.selectedPort!], this.extensionPath);
 	}
 
 	private async stop() {
 		this.checkConnectedPort();
-		this.stopRunningMonitor();
+		await this.stopRunningMonitor();
 		this.runJaculusCommandInTerminal('stop', ["--port", this.selectedPort!], this.extensionPath);
 	}
 
 	private async showVersion() {
 		this.checkConnectedPort();
-		this.stopRunningMonitor();
+		await this.stopRunningMonitor();
 		this.runJaculusCommandInTerminal('version', ["--port", this.selectedPort!], this.extensionPath);
 	}
 
 	private async showStatus() {
 		this.checkConnectedPort();
-		this.stopRunningMonitor();
+		await this.stopRunningMonitor();
 		this.runJaculusCommandInTerminal('status', ["--port", this.selectedPort!], this.extensionPath);
 	}
 
@@ -128,7 +134,7 @@ class JaculusInterface {
 			});
 		}
 
-		if (this.debugMode != LogLevel.info) {
+		if (this.debugMode !== LogLevel.info) {
 			const str : string = LogLevel[this.debugMode];
             args.push('--log-level', str);
         }
@@ -155,6 +161,7 @@ class JaculusInterface {
 	private async stopRunningMonitor() {
 		if (this.monitoring) {
 			this.monitorStop();
+			await new Promise(resolve => setTimeout(resolve, 200));
 		}
 	}
 
@@ -200,32 +207,49 @@ class JaculusInterface {
 			return;
 		}
 
+		const color = "#ff8500";
+
 		this.selectComPortBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 		this.selectComPortBtn.command = "jaculus.SelectComPort";
 		this.selectComPortBtn.text = this.selectedPort ? `$(plug) ${this.selectedPort.replace('/dev/tty.', '')}` : "$(plug) Select COM Port";
 		this.selectComPortBtn.tooltip = "Jaculus Select COM Port";
-		this.selectComPortBtn.color = "#ff8500";
+		this.selectComPortBtn.color = color;
 		this.selectComPortBtn.show();
 
 		let buildBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-		buildBtn.command = "jaculus.BuildFlash";
-		buildBtn.text = "$(gear) Build and Flash";
-		buildBtn.tooltip = "Jaculus Build and Flash";
-		buildBtn.color = "#ff8500";
+		buildBtn.command = "jaculus.Build";
+		buildBtn.text = "$(database) Build";
+		buildBtn.tooltip = "Jaculus Build";
+		buildBtn.color = color;
 		buildBtn.show();
+
+		let flashBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+		flashBtn.command = "jaculus.Flash";
+		flashBtn.text = "$(zap) Flash";
+		flashBtn.tooltip = "Jaculus Flash";
+		flashBtn.color = color;
+		flashBtn.show();
 
 		let monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
 		monitorBtn.command = "jaculus.Monitor";
-		monitorBtn.text = "$(eye) Monitor";
+		monitorBtn.text = "$(device-desktop) Monitor";
 		monitorBtn.tooltip = "Jaculus Monitor";
-		monitorBtn.color = "#ff8500";
-
+		monitorBtn.color = color;
 		monitorBtn.show();
+
+		let buildFlashMonitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+		buildFlashMonitorBtn.command = "jaculus.BuildFlashMonitor";
+		buildFlashMonitorBtn.text = "$(diff-renamed) Build, Flash and Monitor";
+		buildFlashMonitorBtn.tooltip = "Jaculus Build, Flash and Monitor";
+		buildFlashMonitorBtn.color = color;
+		buildFlashMonitorBtn.show();
 
         this.context.subscriptions.push(
             vscode.commands.registerCommand('jaculus.SelectComPort', () => this.selectComPort()),
-            vscode.commands.registerCommand('jaculus.BuildFlash', () => { this.build(); this.flash() }),
+            vscode.commands.registerCommand('jaculus.Build', () => this.build() ),
+            vscode.commands.registerCommand('jaculus.Flash', () => this.flash() ),
             vscode.commands.registerCommand('jaculus.Monitor', () => this.monitor()),
+			vscode.commands.registerCommand('jaculus.BuildFlashMonitor', () => this.buildFlashMonitor()),
 			vscode.commands.registerCommand('jaculus.SetLogLevel', () => this.selectLogLevel()),
 			vscode.commands.registerCommand('jaculus.Start', () => this.start()),
 			vscode.commands.registerCommand('jaculus.Stop', () => this.stop()),
