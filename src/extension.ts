@@ -57,6 +57,7 @@ class JaculusInterface {
     }
 
 	public async build() {
+		vscode.workspace.saveAll(false);
         this.runJaculusCommandInTerminal('build', [], this.extensionPath);
     }
 
@@ -73,6 +74,7 @@ class JaculusInterface {
     }
 
     public async buildFlashMonitor() {
+		vscode.workspace.saveAll(false);
 		this.checkConnectedPort();
 		await this.stopRunningMonitor();
 		this.runJaculusCommandInTerminal('build flash monitor', ["--port", this.selectedPort!], this.extensionPath);
