@@ -279,6 +279,29 @@ class JaculusInterface {
 		});
 	}
 
+	private async checkForUpdates(showIfUpToDate: boolean = false) {
+		exec('npm outdated -g jaculus-tools', async (error, stdout) => {
+			if (stdout) {
+				const update = await vscode.window.showWarningMessage('jaculus-tools is outdated. Do you want to update now?', 'Yes', 'No');
+				if (update === 'Yes') {
+					this.updateJaculusTools();
+				}
+			} else if (showIfUpToDate) {
+				vscode.window.showInformationMessage('jaculus-tools is up to date!');
+			}
+		});
+	}
+
+	private updateJaculusTools() {
+		exec('npm install -g jaculus-tools', (error, stdout) => {
+			if (error) {
+				vscode.window.showErrorMessage(`Error: ${error.message}`);
+				return;
+			}
+			vscode.window.showInformationMessage('jaculus-tools was successfully updated!');
+		});
+	}
+
 
 	public async registerCommands() {
 		if (!await this.checkJaculusInstalled()) {
@@ -344,7 +367,10 @@ class JaculusInterface {
 			vscode.commands.registerCommand('jaculus.ShowVersion', () => this.showVersion()),
 			vscode.commands.registerCommand('jaculus.ShowStatus', () => this.showStatus()),
 			vscode.commands.registerCommand('jaculus.Format', () => this.format()),
+			vscode.commands.registerCommand('jaculus.CheckForUpdates', () => this.checkForUpdates(true))
 		);
+
+		this.checkForUpdates();
 	}
 }
 

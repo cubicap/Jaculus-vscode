@@ -85,6 +85,11 @@
                 "command": "jaculus.Format",
                 "title": "Format storage",
                 "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.CheckForUpdates",
+                "title": "Check for updates",
+                "category": "Jaculus"
             }
         ],
         "keybindings": [
