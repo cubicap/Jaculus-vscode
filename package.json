@@ -67,11 +67,6 @@
                 "category": "Jaculus"
             },
             {
-                "command": "jaculus.SelectFolder",
-                "title": "Change Jaculus working directory",
-                "category": "Jaculus"
-            },
-            {
                 "command": "jaculus.ShowVersion",
                 "title": "Show version",
                 "category": "Jaculus"
