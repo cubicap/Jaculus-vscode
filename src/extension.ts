@@ -200,7 +200,7 @@ class JaculusInterface {
     private async checkJaculusInstalled(): Promise<boolean> {
         return new Promise<boolean>((resolve) => {
             exec(this.jacToolCommand, (err, stdout, stderr) => {
-                if (err || stderr) {
+                if (err) {
                     resolve(false);
                 }
                 resolve(true);
