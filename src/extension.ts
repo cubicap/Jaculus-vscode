@@ -34,13 +34,9 @@ class JaculusInterface {
     }
 
     private async selectComPort() {
-        exec(`${this.jacToolCommand} list-ports`, (error, stdout, stderr) => {
+        exec(`${this.jacToolCommand} list-ports`, (error, stdout) => {
             if (error) {
                 vscode.window.showErrorMessage(`Error: ${error.message}`);
-                return;
-            }
-            if (stderr) {
-                vscode.window.showWarningMessage(`Stderr: ${stderr}`);
                 return;
             }
             let ports = this.parseSerialPorts(stdout);
@@ -118,20 +114,6 @@ class JaculusInterface {
         this.runJaculusCommandInTerminal('format', ["--port", this.selectedPort!], this.extensionPath);
     }
 
-    private runJaculusCommand(command: string, args: string[], cwd: string): void {
-        exec(`${this.jacToolCommand} ${command} ${args.join(' ')}`, { cwd }, (error, stdout, stderr) => {
-            if (error) {
-                vscode.window.showErrorMessage(`Jaculus Error: ${error.message}`);
-                return;
-            }
-            if (stderr) {
-                vscode.window.showErrorMessage(`Jaculus Error: ${stderr}`);
-                return;
-            }
-            return stdout;
-        });
-    }
-
     private async runJaculusCommandInTerminal(command: string, args: string[], cwd: string): Promise<void> {
         if (this.terminalJaculus === null) {
             this.terminalJaculus = vscode.window.createTerminal({
@@ -199,7 +181,7 @@ class JaculusInterface {
 
     private async checkJaculusInstalled(): Promise<boolean> {
         return new Promise<boolean>((resolve) => {
-            exec(this.jacToolCommand, (err, stdout, stderr) => {
+            exec(this.jacToolCommand, (err) => {
                 if (err) {
                     resolve(false);
                 }
