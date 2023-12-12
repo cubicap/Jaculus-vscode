@@ -161,7 +161,7 @@ class JaculusInterface {
         const lines = input.split('\n');
 
         // Start parsing from line 2 to skip headers
-        for (let i = 3; i < lines.length; i++) {
+        for (let i = 2; i < lines.length; i++) {
           const line = lines[i].trim();
 
           if (line === 'Done') {
