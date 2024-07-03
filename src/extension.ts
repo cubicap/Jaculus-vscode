@@ -18,6 +18,7 @@ enum LogLevel {
 class JaculusInterface {
     private selectComPortBtn: vscode.StatusBarItem | null = null;
     private selectedPort: string | null = null;
+    private selectedSocket: string | null = null;
     private terminalJaculus: vscode.Terminal | null = null;
     private debugMode: LogLevel = LogLevel.info;
     private monitoring: boolean = false;
@@ -41,12 +42,46 @@ class JaculusInterface {
             }
             let ports = this.parseSerialPorts(stdout);
             let items = ports.map(port => ({ label: port.path, description: port.manufacturer }));
-            vscode.window.showQuickPick(items).then(selected => {
+            items.push({label: "Socket", description: undefined});
+            vscode.window.showQuickPick(items).then(async selected => {
                 if (selected) {
-                    this.selectedPort = selected.label;
-                    this.context.globalState.update("selectedPort", this.selectedPort);
-                    this.selectComPortBtn && (this.selectComPortBtn.text = `$(plug) ${this.selectedPort.replace('/dev/tty.', '')}`);
-                    vscode.window.showInformationMessage(`Selected COM port: ${selected.label}`);
+                    if (selected.label == "Socket"){
+                        const socket_tmp = await vscode.window.showInputBox({
+                            placeHolder: 'Enter ip and port of your jaculus device',
+                            prompt: 'IP:PORT (default port: 3275)', // TODO - placeholder port
+                            validateInput: (text: string): string | undefined => {
+                                if (text.trim().length === 0) {
+                                    return 'Input cannot be empty';
+                                }
+                                return undefined;
+                            }
+                        });
+                        let socket = null
+
+                        if (socket_tmp?.includes(":")){
+                            socket = socket_tmp
+                        }
+                        else if (socket_tmp != undefined){
+                            socket = socket_tmp + ":3275" // TODO - placeholder port
+                        }
+
+                        this.selectedPort = null;
+                        this.context.globalState.update("selectedPort", this.selectedPort);
+
+                        this.selectedSocket = socket === undefined ? null : socket; // convert from string | undefined to string | null
+                        this.context.globalState.update("selectedSocket", this.selectedSocket);
+                        this.selectComPortBtn && (this.selectComPortBtn.text = `$(plug) Socket: ${this.selectedSocket}`);
+                        vscode.window.showInformationMessage(`Selected Socket: ${this.selectedSocket}`);
+                    }
+                    else{
+                        this.selectedSocket = null;
+                        this.context.globalState.update("selectedSocket", this.selectedSocket);
+
+                        this.selectedPort = selected.label;
+                        this.context.globalState.update("selectedPort", this.selectedPort);
+                        this.selectComPortBtn && (this.selectComPortBtn.text = `$(plug) ${this.selectedPort.replace('/dev/tty.', '')}`);
+                        vscode.window.showInformationMessage(`Selected COM port: ${selected.label}`);
+                    }
                 }
             });
         });
@@ -60,20 +95,36 @@ class JaculusInterface {
     public async flash() {
         this.checkConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('flash', ["--port", this.selectedPort!], this.extensionPath);
+        if (this.selectedPort !== null){
+            this.runJaculusCommandInTerminal('flash', ["--port", this.selectedPort!], this.extensionPath);
+        }
+        else if (this.selectedSocket !== null){
+            this.runJaculusCommandInTerminal('flash', ["--socket", this.selectedSocket!], this.extensionPath);
+        }
     }
 
     public async monitor() {
         this.checkConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('monitor', ["--port", this.selectedPort!], this.extensionPath);
+        if (this.selectedPort !== null){
+            this.runJaculusCommandInTerminal('monitor', ["--port", this.selectedPort!], this.extensionPath);
+        }
+        else if (this.selectedSocket !== null){
+            this.runJaculusCommandInTerminal('monitor', ["--socket", this.selectedSocket!], this.extensionPath);
+        }
     }
 
     public async buildFlashMonitor() {
         vscode.workspace.saveAll(false);
         this.checkConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('build flash monitor', ["--port", this.selectedPort!], this.extensionPath);
+        if (this.selectedPort !== null){
+            this.runJaculusCommandInTerminal('build flash monitor', ["--port", this.selectedPort!], this.extensionPath);
+        }
+        else if (this.selectedSocket !== null){
+            this.runJaculusCommandInTerminal('build flash monitor', ["--socket", this.selectedSocket!], this.extensionPath);
+        }
+        
         this.monitoring = true;
     }
 
@@ -87,31 +138,56 @@ class JaculusInterface {
     private async start() {
         this.checkConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('start', ["--port", this.selectedPort!], this.extensionPath);
+        if (this.selectedPort !== null){
+            this.runJaculusCommandInTerminal('start', ["--port", this.selectedPort!], this.extensionPath);
+        }
+        else if (this.selectedSocket !== null){
+            this.runJaculusCommandInTerminal('start', ["--socket", this.selectedSocket!], this.extensionPath);
+        }
     }
 
     private async stop() {
         this.checkConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('stop', ["--port", this.selectedPort!], this.extensionPath);
+        if (this.selectedPort !== null){
+            this.runJaculusCommandInTerminal('stop', ["--port", this.selectedPort!], this.extensionPath);
+        }
+        else if (this.selectedSocket !== null){
+            this.runJaculusCommandInTerminal('stop', ["--socket", this.selectedSocket!], this.extensionPath);
+        }
     }
 
     private async showVersion() {
         this.checkConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('version', ["--port", this.selectedPort!], this.extensionPath);
+        if (this.selectedPort !== null){
+            this.runJaculusCommandInTerminal('version', ["--port", this.selectedPort!], this.extensionPath);
+        }
+        else if (this.selectedSocket !== null){
+            this.runJaculusCommandInTerminal('version', ["--socket", this.selectedSocket!], this.extensionPath);
+        }
     }
 
     private async showStatus() {
         this.checkConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('status', ["--port", this.selectedPort!], this.extensionPath);
+        if (this.selectedPort !== null){
+            this.runJaculusCommandInTerminal('status', ["--port", this.selectedPort!], this.extensionPath);
+        }
+        else if (this.selectedSocket !== null){
+            this.runJaculusCommandInTerminal('status', ["--socket", this.selectedSocket!], this.extensionPath);
+        }
     }
 
     private async format() {
         this.checkConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('format', ["--port", this.selectedPort!], this.extensionPath);
+        if (this.selectedPort !== null){
+            this.runJaculusCommandInTerminal('format', ["--port", this.selectedPort!], this.extensionPath);
+        }
+        else if (this.selectedSocket !== null){
+            this.runJaculusCommandInTerminal('format', ["--socket", this.selectedSocket!], this.extensionPath);
+        }
     }
 
     private async runJaculusCommandInTerminal(command: string, args: string[], cwd: string): Promise<void> {
@@ -143,8 +219,9 @@ class JaculusInterface {
     }
 
     private async checkConnectedPort() {
-        if (this.selectedPort === null) {
-            throw new Error('Jaculus: No COM port selected');
+        if (this.selectedPort === null && this.selectedSocket === null) {
+            vscode.window.showErrorMessage('Jaculus: No COM port or Socket selected')
+            throw new Error('Jaculus: No COM port or Socket selected');
         }
     }
 
