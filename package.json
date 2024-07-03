@@ -90,6 +90,11 @@
                 "command": "jaculus.ToggleMinimalMode",
                 "title": "Toggle minimal mode",
                 "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.InstallBoard",
+                "title": "Install firmware",
+                "category": "Jaculus"
             }
         ],
         "keybindings": [
@@ -132,6 +137,7 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
+        "axios": "^1.7.2",
         "child_process": "^1.0.2"
     }
 }
