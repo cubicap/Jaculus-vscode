@@ -22,6 +22,7 @@ class JaculusInterface {
     private selectedPort: string | null = null;
     private selectedSocket: string | null = null;
     private terminalJaculus: vscode.Terminal | null = null;
+    private minimalMode: boolean = false;
     private debugMode: LogLevel = LogLevel.info;
     private monitoring: boolean = false;
 
@@ -29,6 +30,7 @@ class JaculusInterface {
         this.selectedPort = this.context.globalState.get("selectedPort") || null; // if port is selected from previous session, find it
         this.debugMode = this.context.globalState.get("debugMode") || LogLevel.info; // if debug mode is selected from previous session, find it
         this.terminalJaculus = vscode.window.terminals.find(terminal => terminal.name === 'Jaculus') || null; // if terminal is opened from previous session, find it
+        this.minimalMode = this.context.globalState.get("minimalMode") || false; // if minimal mode is selected from previous session, hide button comments
         vscode.window.onDidCloseTerminal((closedTerminal) => {
             if (this.terminalJaculus === closedTerminal) {
                 this.terminalJaculus = null;
@@ -206,19 +208,19 @@ class JaculusInterface {
 
         // Start parsing from line 2 to skip headers
         for (let i = 2; i < lines.length; i++) {
-          const line = lines[i].trim();
+            const line = lines[i].trim();
 
-          if (line === 'Done') {
-            break;
-          }
+            if (line === 'Done') {
+                break;
+            }
 
-          // Ignore empty lines
-          if (line.length > 0) {
-            const parts = line.split(/\s\s+/); // split on 2 or more spaces
-            const path = parts[0];
-            const manufacturer = parts.length > 1 ? parts[1] : undefined;
-            result.push({ path, manufacturer });
-          }
+            // Ignore empty lines
+            if (line.length > 0) {
+                const parts = line.split(/\s\s+/); // split on 2 or more spaces
+                const path = parts[0];
+                const manufacturer = parts.length > 1 ? parts[1] : undefined;
+                result.push({ path, manufacturer });
+            }
         }
         return result;
     }
@@ -257,6 +259,24 @@ class JaculusInterface {
         });
     }
 
+    public toggleMinimalMode() {
+        this.minimalMode = !this.minimalMode;
+        this.context.globalState.update("minimalMode", this.minimalMode);
+        // show context menu tht changes will apply after restart
+        // menu will have button to restart the extension - vscode.commands.executeCommand('workbench.action.reloadWindow');
+        vscode.window.showInformationMessage(
+            'Minimal mode has been toggled. Changes will apply after a restart.',
+            'Restart Now'
+        ).then(selection => {
+            if (selection === 'Restart Now') {
+                vscode.commands.executeCommand('workbench.action.reloadWindow');
+            }
+        });
+    }
+
+    public getButtonText(icon: string, text: string): string {
+        return this.minimalMode ? icon : `${icon} ${text}`;
+    }
 
     public async registerCommands() {
         if (!await this.checkJaculusInstalled()) {
@@ -264,47 +284,56 @@ class JaculusInterface {
             return;
         }
 
-        const color = "#ff8500";
+        let color = "#ff8500";
+        if (this.minimalMode) {
+            color = "#e9b780";
+        }
 
         this.selectComPortBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         this.selectComPortBtn.command = "jaculus.SelectComPort";
-        this.selectComPortBtn.text = this.selectedPort ? `$(plug) ${this.selectedPort.replace('/dev/tty.', '')}` : "$(plug) Select Port";
+        if (this.selectedPort) {
+            this.selectComPortBtn.text = this.getButtonText("$(plug)", this.selectedPort.replace('/dev/tty.', ''));
+        } else if (this.selectedSocket) {
+            this.selectComPortBtn.text = this.getButtonText("$(plug)", this.selectedSocket);
+        } else {
+            this.selectComPortBtn.text = this.getButtonText("$(plug)", "Select Port");
+        }
         this.selectComPortBtn.tooltip = "Jaculus Select Port";
         this.selectComPortBtn.color = color;
         this.selectComPortBtn.show();
 
         let buildBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         buildBtn.command = "jaculus.Build";
-        buildBtn.text = "$(database) Build";
+        buildBtn.text = this.getButtonText("$(database)", "Build");
         buildBtn.tooltip = "Jaculus Build";
         buildBtn.color = color;
         buildBtn.show();
 
         let flashBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         flashBtn.command = "jaculus.Flash";
-        flashBtn.text = "$(zap) Flash";
+        flashBtn.text = this.getButtonText("$(zap)", "Flash");
         flashBtn.tooltip = "Jaculus Flash";
         flashBtn.color = color;
         flashBtn.show();
 
         let monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         monitorBtn.command = "jaculus.Monitor";
-        monitorBtn.text = "$(device-desktop) Monitor";
+        monitorBtn.text = this.getButtonText("$(device-desktop)", "Monitor");
         monitorBtn.tooltip = "Jaculus Monitor";
         monitorBtn.color = color;
         monitorBtn.show();
 
         let buildFlashMonitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         buildFlashMonitorBtn.command = "jaculus.BuildFlashMonitor";
-        buildFlashMonitorBtn.text = "$(diff-renamed) Build, Flash and Monitor";
+        buildFlashMonitorBtn.text = this.getButtonText("$(diff-renamed)", "Build, Flash and Monitor");
         buildFlashMonitorBtn.tooltip = "Jaculus Build, Flash and Monitor";
         buildFlashMonitorBtn.color = color;
         buildFlashMonitorBtn.show();
 
         this.context.subscriptions.push(
             vscode.commands.registerCommand('jaculus.SelectComPort', () => this.selectPort()),
-            vscode.commands.registerCommand('jaculus.Build', () => this.build() ),
-            vscode.commands.registerCommand('jaculus.Flash', () => this.flash() ),
+            vscode.commands.registerCommand('jaculus.Build', () => this.build()),
+            vscode.commands.registerCommand('jaculus.Flash', () => this.flash()),
             vscode.commands.registerCommand('jaculus.Monitor', () => this.monitor()),
             vscode.commands.registerCommand('jaculus.BuildFlashMonitor', () => this.buildFlashMonitor()),
             vscode.commands.registerCommand('jaculus.SetLogLevel', () => this.selectLogLevel()),
@@ -313,7 +342,8 @@ class JaculusInterface {
             vscode.commands.registerCommand('jaculus.ShowVersion', () => this.showVersion()),
             vscode.commands.registerCommand('jaculus.ShowStatus', () => this.showStatus()),
             vscode.commands.registerCommand('jaculus.Format', () => this.format()),
-            vscode.commands.registerCommand('jaculus.CheckForUpdates', () => this.checkForUpdates(true))
+            vscode.commands.registerCommand('jaculus.CheckForUpdates', () => this.checkForUpdates(true)),
+            vscode.commands.registerCommand('jaculus.ToggleMinimalMode', () => this.toggleMinimalMode()),
         );
 
         this.checkForUpdates();
