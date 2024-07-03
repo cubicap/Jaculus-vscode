@@ -36,7 +36,7 @@ class JaculusInterface {
         });
     }
 
-    private async selectComPort() {
+    private async selectPort() {
         exec(`${this.jacToolCommand} list-ports`, (error, stdout) => {
             if (error) {
                 vscode.window.showErrorMessage(`Error: ${error.message}`);
@@ -70,7 +70,7 @@ class JaculusInterface {
                         this.selectedPort = null;
                         this.context.globalState.update("selectedPort", this.selectedPort);
 
-                        this.selectedSocket = socket ? null : socket;
+                        this.selectedSocket = socket ? socket : null;
                         this.context.globalState.update("selectedSocket", this.selectedSocket);
                         this.selectComPortBtn && (this.selectComPortBtn.text = `$(plug) Socket: ${this.selectedSocket}`);
                         vscode.window.showInformationMessage(`Selected Socket: ${this.selectedSocket}`);
@@ -188,8 +188,8 @@ class JaculusInterface {
             return ["--socket", this.selectedSocket!];
         }
 
-        vscode.window.showErrorMessage('Jaculus: No COM port or Socket selected');
-        throw new Error('Jaculus: No COM port or Socket selected');
+        vscode.window.showErrorMessage('Jaculus: No port selected');
+        throw new Error('Jaculus: No port selected');
     }
 
     private async stopRunningMonitor() {
@@ -268,8 +268,8 @@ class JaculusInterface {
 
         this.selectComPortBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         this.selectComPortBtn.command = "jaculus.SelectComPort";
-        this.selectComPortBtn.text = this.selectedPort ? `$(plug) ${this.selectedPort.replace('/dev/tty.', '')}` : "$(plug) Select COM Port";
-        this.selectComPortBtn.tooltip = "Jaculus Select COM Port";
+        this.selectComPortBtn.text = this.selectedPort ? `$(plug) ${this.selectedPort.replace('/dev/tty.', '')}` : "$(plug) Select Port";
+        this.selectComPortBtn.tooltip = "Jaculus Select Port";
         this.selectComPortBtn.color = color;
         this.selectComPortBtn.show();
 
@@ -302,7 +302,7 @@ class JaculusInterface {
         buildFlashMonitorBtn.show();
 
         this.context.subscriptions.push(
-            vscode.commands.registerCommand('jaculus.SelectComPort', () => this.selectComPort()),
+            vscode.commands.registerCommand('jaculus.SelectComPort', () => this.selectPort()),
             vscode.commands.registerCommand('jaculus.Build', () => this.build() ),
             vscode.commands.registerCommand('jaculus.Flash', () => this.flash() ),
             vscode.commands.registerCommand('jaculus.Monitor', () => this.monitor()),
