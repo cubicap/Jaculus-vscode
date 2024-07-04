@@ -305,41 +305,58 @@ class JaculusInterface {
 
 
     private async installJaculusBoardVersion(): Promise<void> {
-        const boardsIndex = await this.getBoardsIndex();
+        // should fail if com port is not selected
+        if (!this.selectedPort) {
+            vscode.window.showErrorMessage('Please select a COM port before installing firmware');
+            return;
+        }
 
-        // Add a custom URL option
-        const customUrlOption = 'Custom URL';
-        const boardOptions = [...boardsIndex.map(board => board.board), customUrlOption];
+        try {
+            const boardsIndex = await this.getBoardsIndex();
 
-        // Show initial menu with boards and custom URL option
-        const boardOrCustomUrl = await vscode.window.showQuickPick(boardOptions, { placeHolder: 'Select a board to install or enter a custom URL' });
+            // Add a custom URL option
+            const customUrlOption = 'Custom URL';
+            const boardOptions = [...boardsIndex.map(board => board.board), customUrlOption];
 
-        if (boardOrCustomUrl) {
+            // Show initial menu with boards and custom URL option
+            const boardOrCustomUrl = await vscode.window.showQuickPick(boardOptions, { placeHolder: 'Select a board or enter a custom URL' });
+            let firmwareUrl = '';
+
+            if (!boardOrCustomUrl) {
+                vscode.window.showErrorMessage('Please select a board or enter a custom URL');
+                return;
+            }
+
             if (boardOrCustomUrl === customUrlOption) {
                 // Handle custom URL input
-                const customUrl = await vscode.window.showInputBox({ placeHolder: 'Enter the custom URL for the tar.gz package' });
-                if (customUrl) {
-                    const port = this.getConnectedPort();
-                    this.runJaculusCommandInTerminal('install', [`--package`, `"${customUrl}"`, ...port], this.extensionPath);
-                    vscode.window.showInformationMessage(`Installing from custom URL: ${customUrl}`);
+                firmwareUrl = await vscode.window.showInputBox({ placeHolder: 'Enter the custom URL for the tar.gz package' }) || '';
+                if (firmwareUrl === '') {
+                    vscode.window.showErrorMessage('Please enter a valid URL');
+                    return;
                 }
             } else {
                 // Handle predefined board selection
                 const boardId = boardsIndex.find(b => b.board === boardOrCustomUrl)?.id;
-                if (boardId) {
-                    try {
-                        const boardVersions = await this.getBoardVersions(boardId);
-                        const selectedVersion = await vscode.window.showQuickPick(boardVersions.map(version => version.version), { placeHolder: 'Select a version to install' });
-                        if (selectedVersion) {
-                            const port = this.getConnectedPort();
-                            this.runJaculusCommandInTerminal('install', [`--package`, `"${BOARD_INDEX_URL}/${boardOrCustomUrl}/${boardOrCustomUrl}-${selectedVersion}.tar.gz"`, ...port], this.extensionPath);
-                            vscode.window.showInformationMessage(`Installing ${boardOrCustomUrl} ${selectedVersion}`);
-                        }
-                    } catch (error) {
-                        vscode.window.showErrorMessage('Error fetching board versions - selected board may not have any versions available');
-                    }
+                if (!boardId) {
+                    vscode.window.showErrorMessage('Error fetching board ID');
+                    return;
+                }
+
+                const boardVersions = await this.getBoardVersions(boardId);
+                const selectedVersion = await vscode.window.showQuickPick(boardVersions.map(version => version.version), { placeHolder: 'Select a version to install' });
+                if (selectedVersion) {
+                    firmwareUrl = `${BOARD_INDEX_URL}/${boardId}/${boardOrCustomUrl}-${selectedVersion}.tar.gz`;
+                } else {
+                    vscode.window.showErrorMessage('No version selected');
+                    return;
                 }
             }
+
+            const port = this.getConnectedPort();
+            this.runJaculusCommandInTerminal('install', [`--package`, `"${firmwareUrl}"`, ...port], this.extensionPath);
+            vscode.window.showInformationMessage(`Installing from ${firmwareUrl}`);
+        } catch (error) {
+            vscode.window.showErrorMessage('Error while installing firmware');
         }
     }
 
