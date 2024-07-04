@@ -85,6 +85,11 @@
                 "command": "jaculus.CheckForUpdates",
                 "title": "Check for updates",
                 "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.ToggleMinimalMode",
+                "title": "Toggle minimal mode",
+                "category": "Jaculus"
             }
         ],
         "keybindings": [
