@@ -259,7 +259,8 @@ class JaculusInterface {
 
     public async configWiFi() {
         // Define WiFi commands
-        const wifiCommands: { [key: string]: string } = {
+        /* eslint-disable @typescript-eslint/naming-convention */
+        const wifiCommands: Record<string, string> = {
             "Display current WiFi config": "wifi-get",
             "Set WiFi to AP mode (create a hotspot)": "wifi-ap",
             "Add a WiFi network": "wifi-add",
@@ -267,6 +268,7 @@ class JaculusInterface {
             "Set WiFi to Station mode (connect to a wifi)": "wifi-sta",
             "Disable WiFi": "wifi-disable"
         };
+        /* eslint-enable @typescript-eslint/naming-convention */
 
         // Show quick pick menu with WiFi options
         const selectedOption = await vscode.window.showQuickPick(Object.keys(wifiCommands), { placeHolder: 'Select a WiFi configuration option' });
