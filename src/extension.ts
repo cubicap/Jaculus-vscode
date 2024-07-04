@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
+import axios from 'axios';
 
 type SerialPortInfo = {
     path: string;
@@ -15,7 +16,20 @@ enum LogLevel {
     silly = "silly"
 }
 
+
+type BoardsIndex = {
+    board: string;
+    id: string;
+}[];
+
+type BoardVersions = {
+    version: string;
+}[];
+
 const DEFAULT_PORT = "17531";
+const BOARD_INDEX_URL = "https://f.jaculus.org";
+const BOARDS_INDEX_JSON = "boards.json";
+const BOARD_VERSIONS_JSON = "versions.json";
 
 class JaculusInterface {
     private selectComPortBtn: vscode.StatusBarItem | null = null;
@@ -277,6 +291,75 @@ class JaculusInterface {
     public getButtonText(icon: string, text: string): string {
         return this.minimalMode ? icon : `${icon} ${text}`;
     }
+    private async getBoardsIndex(): Promise<BoardsIndex> {
+        const url = `${BOARD_INDEX_URL}/${BOARDS_INDEX_JSON}`;
+        const response = await axios.get(url);
+        return response.data;
+    }
+
+    private async getBoardVersions(boardId: string): Promise<BoardVersions> {
+        const url = `${BOARD_INDEX_URL}/${boardId}/${BOARD_VERSIONS_JSON}`;
+        const response = await axios.get(url);
+        return response.data;
+    }
+
+
+    private async installJaculusBoardVersion(): Promise<void> {
+        // should fail if com port is not selected
+        if (!this.selectedPort) {
+            vscode.window.showErrorMessage('Please select a COM port before installing firmware');
+            return;
+        }
+
+        try {
+            const boardsIndex = await this.getBoardsIndex();
+
+            // Add a custom URL option
+            const customUrlOption = 'Custom URL';
+            const boardOptions = [...boardsIndex.map(board => board.board), customUrlOption];
+
+            // Show initial menu with boards and custom URL option
+            const boardOrCustomUrl = await vscode.window.showQuickPick(boardOptions, { placeHolder: 'Select a board or enter a custom URL' });
+            let firmwareUrl = '';
+
+            if (!boardOrCustomUrl) {
+                vscode.window.showErrorMessage('Please select a board or enter a custom URL');
+                return;
+            }
+
+            if (boardOrCustomUrl === customUrlOption) {
+                // Handle custom URL input
+                firmwareUrl = await vscode.window.showInputBox({ placeHolder: 'Enter the custom URL for the tar.gz package' }) || '';
+                if (firmwareUrl === '') {
+                    vscode.window.showErrorMessage('Please enter a valid URL');
+                    return;
+                }
+            } else {
+                // Handle predefined board selection
+                const boardId = boardsIndex.find(b => b.board === boardOrCustomUrl)?.id;
+                if (!boardId) {
+                    vscode.window.showErrorMessage('Error fetching board ID');
+                    return;
+                }
+
+                const boardVersions = await this.getBoardVersions(boardId);
+                const selectedVersion = await vscode.window.showQuickPick(boardVersions.map(version => version.version), { placeHolder: 'Select a version to install' });
+                if (selectedVersion) {
+                    firmwareUrl = `${BOARD_INDEX_URL}/${boardId}/${boardOrCustomUrl}-${selectedVersion}.tar.gz`;
+                } else {
+                    vscode.window.showErrorMessage('No version selected');
+                    return;
+                }
+            }
+
+            const port = this.getConnectedPort();
+            this.runJaculusCommandInTerminal('install', [`--package`, `"${firmwareUrl}"`, ...port], this.extensionPath);
+            vscode.window.showInformationMessage(`Installing from ${firmwareUrl}`);
+        } catch (error) {
+            vscode.window.showErrorMessage('Error while installing firmware');
+        }
+    }
+
 
     public async registerCommands() {
         if (!await this.checkJaculusInstalled()) {
@@ -344,6 +427,7 @@ class JaculusInterface {
             vscode.commands.registerCommand('jaculus.Format', () => this.format()),
             vscode.commands.registerCommand('jaculus.CheckForUpdates', () => this.checkForUpdates(true)),
             vscode.commands.registerCommand('jaculus.ToggleMinimalMode', () => this.toggleMinimalMode()),
+            vscode.commands.registerCommand('jaculus.InstallBoard', () => this.installJaculusBoardVersion())
         );
 
         this.checkForUpdates();
