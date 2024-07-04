@@ -27,7 +27,7 @@ type BoardVersions = {
 }[];
 
 const DEFAULT_PORT = "17531";
-const BOARD_INDEX_URL = "https://f.jaculus.org";
+const BOARD_INDEX_URL = "https://f.jaculus.org/bin";
 const BOARDS_INDEX_JSON = "boards.json";
 const BOARD_VERSIONS_JSON = "versions.json";
 
@@ -474,7 +474,7 @@ class JaculusInterface {
                 const boardVersions = await this.getBoardVersions(boardId);
                 const selectedVersion = await vscode.window.showQuickPick(boardVersions.map(version => version.version), { placeHolder: 'Select a version to install' });
                 if (selectedVersion) {
-                    firmwareUrl = `${BOARD_INDEX_URL}/${boardId}/${boardOrCustomUrl}-${selectedVersion}.tar.gz`;
+                    firmwareUrl = `${BOARD_INDEX_URL}/${boardId}/${boardId}-${selectedVersion}.tar.gz`;
                 } else {
                     vscode.window.showErrorMessage('No version selected');
                     return;
