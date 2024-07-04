@@ -95,6 +95,11 @@
                 "command": "jaculus.InstallBoard",
                 "title": "Install firmware",
                 "category": "Jaculus"
+            },
+            {
+                "command": "jaculus.ConfigWiFi",
+                "title": "Configure WiFi",
+                "category": "Jaculus"
             }
         ],
         "keybindings": [

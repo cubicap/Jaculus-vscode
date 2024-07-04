@@ -86,7 +86,7 @@ class JaculusInterface {
                         this.selectedPort = null;
                         this.context.globalState.update("selectedPort", this.selectedPort);
 
-                        this.selectedSocket = socket ? socket : null;
+                        this.selectedSocket = socket || null;
                         this.context.globalState.update("selectedSocket", this.selectedSocket);
                         this.selectComPortBtn && (this.selectComPortBtn.text = `$(plug) Socket: ${this.selectedSocket}`);
                         vscode.window.showInformationMessage(`Selected Socket: ${this.selectedSocket}`);
@@ -107,26 +107,26 @@ class JaculusInterface {
 
     public async build() {
         vscode.workspace.saveAll(false);
-        this.runJaculusCommandInTerminal('build', [], this.extensionPath);
+        this.runJaculusCommandInTerminal('build', [], []);
     }
 
     public async flash() {
         const port = this.getConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('flash', port, this.extensionPath);
+        this.runJaculusCommandInTerminal('flash', port, []);
     }
 
     public async monitor() {
         const port = this.getConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('monitor', port, this.extensionPath);
+        this.runJaculusCommandInTerminal('monitor', port, []);
     }
 
     public async buildFlashMonitor() {
         vscode.workspace.saveAll(false);
         const port = this.getConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('build flash monitor', port, this.extensionPath);
+        this.runJaculusCommandInTerminal('build flash monitor', port, []);
 
         this.monitoring = true;
     }
@@ -141,38 +141,37 @@ class JaculusInterface {
     private async start() {
         const port = this.getConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('start', port, this.extensionPath);
+        this.runJaculusCommandInTerminal('start', port, []);
     }
 
     private async stop() {
         const port = this.getConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('stop', port, this.extensionPath);
+        this.runJaculusCommandInTerminal('stop', port, []);
     }
 
     private async showVersion() {
         const port = this.getConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('version', port, this.extensionPath);
+        this.runJaculusCommandInTerminal('version', port, []);
     }
 
     private async showStatus() {
         const port = this.getConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('status', port, this.extensionPath);
+        this.runJaculusCommandInTerminal('status', port, []);
     }
 
     private async format() {
         const port = this.getConnectedPort();
         await this.stopRunningMonitor();
-        this.runJaculusCommandInTerminal('format', port, this.extensionPath);
+        this.runJaculusCommandInTerminal('format', port, []);
     }
 
-    private async runJaculusCommandInTerminal(command: string, args: string[], cwd: string): Promise<void> {
+    private async runJaculusCommandInTerminal(command: string, port: string[], args: string[]): Promise<void> {
         if (this.terminalJaculus === null) {
             this.terminalJaculus = vscode.window.createTerminal({
                 name: 'Jaculus',
-                // shellPath: cwd,
                 message: 'Jaculus Terminal',
                 iconPath: new vscode.ThemeIcon('gear'),
             });
@@ -184,7 +183,26 @@ class JaculusInterface {
         }
 
         this.terminalJaculus.show();
-        this.terminalJaculus.sendText(`${this.jacToolCommand} ${command} ${args.join(' ')}`, true);
+        this.terminalJaculus.sendText(`${this.jacToolCommand} ${port.join(' ')} ${command} ${args.join(' ')}`, true);
+    }
+
+
+    private runJaculusAsSubprocess(command: string, port: string[], args: string[] = [], input: string | null = null): Promise<{ code: number | undefined, stdout: string, stderr: string }> {
+        return new Promise<{ code: number | undefined, stdout: string, stderr: string }>((resolve, reject) => {
+            const fullCommand = `${this.jacToolCommand} ${port.join(' ')} ${command} ${args.join(' ')}`;
+            const childProcess = exec(fullCommand, { cwd: this.extensionPath }, (error, stdout, stderr) => {
+                if (error) {
+                    resolve({ code: error.code, stdout, stderr });
+                } else {
+                    resolve({ code: 0, stdout, stderr });
+                }
+            });
+
+            if (input && childProcess.stdin) {
+                childProcess.stdin.write(input);
+                childProcess.stdin.end();
+            }
+        });
     }
 
     private async selectLogLevel() {
@@ -237,6 +255,115 @@ class JaculusInterface {
             }
         }
         return result;
+    }
+
+    public async configWiFi() {
+        // Define WiFi commands
+        const wifiCommands: { [key: string]: string } = {
+            "Display current WiFi config": "wifi-get",
+            "Set WiFi to AP mode (create a hotspot)": "wifi-ap",
+            "Add a WiFi network": "wifi-add",
+            "Remove a WiFi network": "wifi-rm",
+            "Set WiFi to Station mode (connect to a wifi)": "wifi-sta",
+            "Disable WiFi": "wifi-disable"
+        };
+
+        // Show quick pick menu with WiFi options
+        const selectedOption = await vscode.window.showQuickPick(Object.keys(wifiCommands), { placeHolder: 'Select a WiFi configuration option' });
+
+        if (selectedOption) {
+            const command = wifiCommands[selectedOption];
+
+            switch (command) {
+                case "wifi-get":
+                    this.wifiGet();
+                    break;
+                case "wifi-ap":
+                    this.wifiAp();
+                    break;
+                case "wifi-add":
+                    this.wifiAdd();
+                    break;
+                case "wifi-rm":
+                    this.wifiRm();
+                    break;
+                case "wifi-sta":
+                    this.wifiSta();
+                    break;
+                case "wifi-disable":
+                    this.wifiDisable();
+                    break;
+                default:
+                    vscode.window.showInformationMessage(`Error: ${command} does not exist`);
+            }
+        }
+    }
+
+    public async wifiGet() {
+        const port = this.getConnectedPort();
+        this.runJaculusCommandInTerminal('wifi-get', port, []);
+    }
+
+    public async getWifiCredentials(readPassword = true): Promise<{ ssid: string, password: string | undefined }> {
+        const ssid = await vscode.window.showInputBox({ placeHolder: 'Enter WiFi network SSID', prompt: 'WiFi network SSID' });
+        // fail if ssid is not provided
+        if (!ssid) {
+            vscode.window.showErrorMessage('SSID is required');
+            throw new Error('SSID is required');
+        }
+
+        let password: string | undefined = undefined;
+        if (readPassword) {
+            password = await vscode.window.showInputBox({ placeHolder: 'Enter WiFi network password', prompt: 'WiFi network password', password: true });
+        }
+        return { ssid, password };
+    }
+
+    public async wifiAp() {
+        const port = this.getConnectedPort();
+        const { ssid } = await this.getWifiCredentials(false);
+        this.runJaculusCommandInTerminal('wifi-ap', port, [ssid]);
+    }
+
+    public async wifiAdd() {
+        const port = this.getConnectedPort();
+        const { ssid } = await this.getWifiCredentials(false);
+
+        this.runJaculusCommandInTerminal('wifi-add', port, [ssid]);
+    }
+
+    public async wifiRm() {
+        const port = this.getConnectedPort();
+        const { ssid } = await this.getWifiCredentials(false);
+        this.runJaculusAsSubprocess('wifi-rm', port, [ssid]).then(({ code, stdout, stderr }) => {
+            if (code !== 0) {
+                vscode.window.showErrorMessage(`Error: ${stderr}`);
+            } else {
+                vscode.window.showInformationMessage(`Removed WiFi network: ${ssid}`);
+            }
+        });
+    }
+
+    public async wifiSta() {
+        const port = this.getConnectedPort();
+        this.runJaculusAsSubprocess('wifi-sta', port).then(({ code, stdout, stderr }) => {
+            if (code !== 0) {
+                vscode.window.showErrorMessage(`Error: ${stderr}`);
+            } else {
+                vscode.window.showInformationMessage(`Connected to WiFi network`);
+            }
+        });
+    }
+
+    public async wifiDisable() {
+        const port = this.getConnectedPort();
+        this.runJaculusAsSubprocess('wifi-disable', port).then(({ code, stdout, stderr }) => {
+            if (code !== 0) {
+                vscode.window.showErrorMessage(`Error: ${stderr}`);
+            } else {
+                vscode.window.showInformationMessage(`Disabled WiFi`);
+            }
+        });
     }
 
     private async checkJaculusInstalled(): Promise<boolean> {
@@ -353,7 +480,7 @@ class JaculusInterface {
             }
 
             const port = this.getConnectedPort();
-            this.runJaculusCommandInTerminal('install', [`--package`, `"${firmwareUrl}"`, ...port], this.extensionPath);
+            this.runJaculusCommandInTerminal('install', port, [`--package`, `"${firmwareUrl}"`]);
             vscode.window.showInformationMessage(`Installing from ${firmwareUrl}`);
         } catch (error) {
             vscode.window.showErrorMessage('Error while installing firmware');
@@ -413,6 +540,13 @@ class JaculusInterface {
         buildFlashMonitorBtn.color = color;
         buildFlashMonitorBtn.show();
 
+        let configWiFiBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+        configWiFiBtn.command = "jaculus.ConfigWiFi";
+        configWiFiBtn.text = this.getButtonText("$(rss)", "Config WiFi");
+        configWiFiBtn.tooltip = "Jaculus Config WiFi";
+        configWiFiBtn.color = color;
+        configWiFiBtn.show();
+
         this.context.subscriptions.push(
             vscode.commands.registerCommand('jaculus.SelectComPort', () => this.selectPort()),
             vscode.commands.registerCommand('jaculus.Build', () => this.build()),
@@ -427,7 +561,8 @@ class JaculusInterface {
             vscode.commands.registerCommand('jaculus.Format', () => this.format()),
             vscode.commands.registerCommand('jaculus.CheckForUpdates', () => this.checkForUpdates(true)),
             vscode.commands.registerCommand('jaculus.ToggleMinimalMode', () => this.toggleMinimalMode()),
-            vscode.commands.registerCommand('jaculus.InstallBoard', () => this.installJaculusBoardVersion())
+            vscode.commands.registerCommand('jaculus.InstallBoard', () => this.installJaculusBoardVersion()),
+            vscode.commands.registerCommand('jaculus.ConfigWiFi', () => this.configWiFi()),
         );
 
         this.checkForUpdates();
