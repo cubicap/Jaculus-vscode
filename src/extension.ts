@@ -481,8 +481,11 @@ class JaculusInterface {
                 }
             }
 
+            // Ask user if they want to erase storage partitions
+            const noErase = await vscode.window.showQuickPick(['No', 'Yes'], { placeHolder: 'Do you want to erase storage partitions?' });
+
             const port = this.getConnectedPort();
-            this.runJaculusCommandInTerminal('install', port, [`--package`, `"${firmwareUrl}"`]);
+            this.runJaculusCommandInTerminal('install', port, [`--package`, `"${firmwareUrl}" ${noErase === 'No' ? '--no-erase' : ''}`]);
             vscode.window.showInformationMessage(`Installing from ${firmwareUrl}`);
         } catch (error) {
             vscode.window.showErrorMessage('Error while installing firmware');
