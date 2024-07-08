@@ -28,7 +28,3 @@ npx jac
 
 - Jaculus is still in early development and may contain bugs.
 - Guide for troubleshooting common problems can be found [here](https://jaculus.org/troubleshooting/).
-
-## Vscode Icons
-
-Page with icons: [vscode-codicons](https://microsoft.github.io/vscode-codicons/dist/codicon.html)
