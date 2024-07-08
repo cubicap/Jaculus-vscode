@@ -261,12 +261,12 @@ class JaculusInterface {
         // Define WiFi commands
         /* eslint-disable @typescript-eslint/naming-convention */
         const wifiCommands: Record<string, string> = {
-            "Display current WiFi config": "wifi-get",
-            "Set WiFi to AP mode (create a hotspot)": "wifi-ap",
-            "Add a WiFi network": "wifi-add",
-            "Remove a WiFi network": "wifi-rm",
-            "Set WiFi to Station mode (connect to a wifi)": "wifi-sta",
-            "Disable WiFi": "wifi-disable"
+            "$(search) Display current WiFi config": "wifi-get",
+            "$(add) Add a WiFi network": "wifi-add",
+            "$(remove) Remove a WiFi network": "wifi-rm",
+            "$(debug-disconnect) Disable WiFi": "wifi-disable",
+            "$(radio-tower) Set WiFi to Station mode (connect to a wifi)": "wifi-sta",
+            "$(broadcast) Set WiFi to AP mode (create a hotspot)": "wifi-ap",
         };
         /* eslint-enable @typescript-eslint/naming-convention */
 
@@ -303,7 +303,7 @@ class JaculusInterface {
 
     public async wifiGet() {
         const port = this.getConnectedPort();
-        this.runJaculusCommandInTerminal('wifi-get', port, []);
+        this.runJaculusCommandInTerminal('wifi-get', port, ["--watch"]);
     }
 
     public async getWifiCredentials(readPassword = true): Promise<{ ssid: string, password: string | undefined }> {
