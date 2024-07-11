@@ -48,7 +48,6 @@ const BOARD_VERSIONS_JSON = "versions.json";
 class JaculusInterface {
     private selectComPortBtn: vscode.StatusBarItem | null = null;
     private terminalJaculus: vscode.Terminal | null = null;
-    private monitoring: boolean = false;
 
     // plugin settings
     private selectedComPort: string | null = null;
@@ -175,14 +174,12 @@ class JaculusInterface {
     public async monitor() {
         const port = this.getConnectedPort();
         this.runJaculusCommandInTerminal('monitor', port, []);
-        this.monitoring = true;
     }
 
     public async buildFlashMonitor() {
         vscode.workspace.saveAll(false);
         const port = this.getConnectedPort();
         this.runJaculusCommandInTerminal('build flash monitor', port, []);
-        this.monitoring = true;
     }
 
     private async start() {
@@ -211,9 +208,8 @@ class JaculusInterface {
     }
 
     public async monitorStop() {
-        if (this.terminalJaculus && this.monitoring) {
+        if (this.terminalJaculus) {
             this.terminalJaculus.sendText(String.fromCharCode(3), true);
-            this.monitoring = false;
         }
     }
 
@@ -277,10 +273,8 @@ class JaculusInterface {
     }
 
     private async stopRunningMonitor() {
-        if (this.monitoring) {
-            this.monitorStop();
-            await new Promise(resolve => setTimeout(resolve, 200));
-        }
+        this.monitorStop();
+        await new Promise(resolve => setTimeout(resolve, 200));
     }
 
 
