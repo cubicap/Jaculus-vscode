@@ -118,6 +118,30 @@
                 "key": "ctrl+alt+p",
                 "mac": "cmd+ctrl+p"
             }
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "jaculus",
+                    "title": "Jaculus",
+                    "icon": "images/logo.png"
+                }
+            ]
+        },
+        "views": {
+            "jaculus": [
+                {
+                    "id": "jaculusView",
+                    "name": "Jaculus"
+                }
+            ]
+        },
+        "viewsWelcome": [
+            {
+                "view": "jaculusView",
+                "contents": "Welcome to Jaculus! To start working create a new Jaculus project.\n[Create Project](command:jaculus.CreateProject)",
+                "when": "!jaculus.hasProject"
+            }
         ]
     },
     "scripts": {
