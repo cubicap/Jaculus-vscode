@@ -231,6 +231,10 @@ class JaculusInterface {
     }
 
     private async runJaculusCommandInTerminal(command: string, port: string[], args: string[], stopPreviousCommand: boolean = true) {
+        if (stopPreviousCommand) {
+            await this.stopRunningMonitor();
+        }
+
         if (this.terminalJaculus === null) {
             this.terminalJaculus = vscode.window.createTerminal({
                 name: 'Jaculus',
@@ -243,9 +247,7 @@ class JaculusInterface {
             const str: string = LogLevel[this.debugMode];
             args.push('--log-level', str);
         }
-        if (stopPreviousCommand) {
-            await this.stopRunningMonitor();
-        }
+
         this.terminalJaculus.show();
         this.terminalJaculus.sendText(`${this.jacToolCommand} ${port.join(' ')} ${command} ${args.join(' ')}`, true);
     }
@@ -431,6 +433,35 @@ class JaculusInterface {
         });
     }
 
+    public async updateProject() {
+        const projectPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+        if (!projectPath) {
+            vscode.window.showErrorMessage('No project folder found. Please open a project folder first.');
+            return;
+        }
+
+        const packageUrl = await vscode.window.showInputBox({
+            placeHolder: 'Enter the package URL for the Jaculus project',
+            prompt: 'Package URL',
+            value: this.context.globalState.get('jaculus.lastPackageUrl') as string || '',
+        });
+
+        const projectName = path.basename(projectPath);
+
+        const authorized = await vscode.window.showWarningMessage(
+            `This will update your Jaculus project in directory "${projectPath}". Some files may be overwritten.\nDo you want to continue?'`,
+            { modal: true },
+            'Yes',
+        );
+        if (authorized !== 'Yes') {
+            return;
+        }
+
+        this.runJaculusCommandInTerminal('project-update', [], [`--package`, `"${packageUrl}"`, `"${projectPath}"`]);
+        vscode.window.showInformationMessage(`Updating project ${projectName}...`);
+        this.context.globalState.update('jaculus.lastPackageUrl', packageUrl);
+    }
+
     private async checkJaculusInstalled(): Promise<boolean> {
         return new Promise<boolean>((resolve) => {
             exec(this.jacToolCommand, (err) => {
@@ -604,12 +635,69 @@ class JaculusInterface {
             vscode.commands.registerCommand('jaculus.ToggleMinimalMode', () => this.toggleMinimalMode()),
             vscode.commands.registerCommand('jaculus.InstallBoard', () => this.installJaculusBoardVersion()),
             vscode.commands.registerCommand('jaculus.ConfigWiFi', () => this.configWiFi()),
+            vscode.commands.registerCommand('jaculus.CreateProject', () => createProject(this.context)),
+            vscode.commands.registerCommand('jaculus.UpdateProject', () => this.updateProject()),
         );
 
         this.checkForUpdates();
     }
 }
 
+const JAC_TOOL_COMMAND = 'npx jac';
+
+async function createProject(context: vscode.ExtensionContext) {
+    // Ask the user for the project path
+    const folderUri = await vscode.window.showOpenDialog({
+        defaultUri: context.globalState.get('jaculus.lastProjectPath') ? vscode.Uri.file(context.globalState.get('jaculus.lastProjectPath') as string) : undefined,
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: 'Select Project Location',
+        title: 'Choose where to create the project'
+    });
+
+    if (!folderUri || folderUri.length === 0) {
+        vscode.window.showErrorMessage('No folder selected');
+        return;
+    }
+
+    context.globalState.update('jaculus.lastProjectPath', folderUri[0].fsPath);
+    
+    const projectName = await vscode.window.showInputBox({ placeHolder: 'Enter project name', prompt: 'Project name' });
+    if (!projectName) {
+        vscode.window.showErrorMessage('Project name is required');
+        return;
+    }
+
+    const projectPath = path.join(folderUri[0].fsPath, projectName);
+    if (fs.existsSync(projectPath)) {
+        vscode.window.showErrorMessage(`Project ${projectName} already exists`);
+        return;
+    }
+
+    const packageUrl = await vscode.window.showInputBox({
+        placeHolder: 'Enter package URL',
+        prompt: 'Package URL',
+        value: context.globalState.get('jaculus.lastPackageUrl') ? context.globalState.get('jaculus.lastPackageUrl') as string : undefined,
+    });
+
+    context.globalState.update('jaculus.lastPackageUrl', packageUrl);
+
+    if (!packageUrl) {
+        vscode.window.showErrorMessage('Package URL is required');
+        return;
+    }
+
+    const terminalJaculus = vscode.window.createTerminal({
+        name: 'Jaculus',
+        message: 'Jaculus Terminal',
+        iconPath: new vscode.ThemeIcon('gear'),
+    });
+
+    terminalJaculus.show();
+    terminalJaculus.sendText(`${JAC_TOOL_COMMAND} project-create --package ${packageUrl} ${projectPath}`, true);
+    vscode.window.showInformationMessage(`Creating project ${projectName}...`);
+}
 function updateConfigContext() {
     const hasConfig = checkForTsConfigInRoot();
     vscode.commands.executeCommand('setContext', 'jaculus.hasProject', hasConfig);
@@ -646,20 +734,21 @@ export async function activate(context: vscode.ExtensionContext) {
     watcher.onDidDelete(() => updateConfigContext());
     context.subscriptions.push(watcher);
 
-    
-    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0 && checkForTsConfigInRoot()) {
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
         const jaculusProvider = new JaculusViewProvider(context);
-    
-        const treeView = vscode.window.createTreeView('jaculusView', {
-            treeDataProvider: jaculusProvider,
-            showCollapseAll: false
-        });
-        context.subscriptions.push(treeView);
+        
+        if (checkForTsConfigInRoot()) {
+            const treeView = vscode.window.createTreeView('jaculusView', {
+                treeDataProvider: jaculusProvider,
+                showCollapseAll: false
+            });
+            context.subscriptions.push(treeView);
+        }
         const path = vscode.workspace.workspaceFolders[0].uri.fsPath;
-        const jaculus = new JaculusInterface(context, jaculusProvider, path, 'npx jac');
+        const jaculus = new JaculusInterface(context, jaculusProvider, path, JAC_TOOL_COMMAND);
         await jaculus.registerCommands();
     } else {
-        // vscode.window.showErrorMessage('Jaculus: No workspace folder found');
+        vscode.commands.registerCommand('jaculus.CreateProject', () => createProject(context));
     }
 }
 

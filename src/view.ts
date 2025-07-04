@@ -77,7 +77,21 @@ export class JaculusViewProvider implements vscode.TreeDataProvider<TreeItem> {
                 vscode.TreeItemCollapsibleState.Collapsed,
                 new vscode.ThemeIcon('gear'),
                 'settings'
+            ),
+            new TreeItem(
+                'Update Project',
+                vscode.TreeItemCollapsibleState.None,
+                new vscode.ThemeIcon('sync'),
+                'updateProject',
+                '',
+                'Update the current Jaculus project',
+                {
+                    command: 'jaculus.UpdateProject',
+                    title: 'Update Project',
+                    arguments: []
+                }
             )
+
         ];
     }
 
@@ -283,12 +297,14 @@ class TreeItem extends vscode.TreeItem {
         public readonly iconPath?: string | vscode.ThemeIcon | vscode.Uri | { light: string | vscode.Uri; dark: string | vscode.Uri },
         public readonly contextValue?: string,
         public readonly commandId?: string,
-        public readonly tooltipText?: string
+        public readonly tooltipText?: string,
+        public readonly command?: vscode.Command
     ) {
         super(label, collapsibleState);
         
         this.tooltip = tooltipText || label;
         this.contextValue = contextValue;
+        this.command = command;
         
         if (commandId) {
             this.command = {
