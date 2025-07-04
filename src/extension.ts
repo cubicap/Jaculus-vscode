@@ -3,6 +3,9 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
+import { JaculusViewProvider } from './view';
 
 type SerialPortInfo = {
     path: string;
@@ -46,6 +49,8 @@ const BOARDS_INDEX_JSON = "boards.json";
 const BOARD_VERSIONS_JSON = "versions.json";
 
 class JaculusInterface {
+    private viewProvider: JaculusViewProvider;
+    
     private selectComPortBtn: vscode.StatusBarItem | null = null;
     private terminalJaculus: vscode.Terminal | null = null;
 
@@ -57,7 +62,9 @@ class JaculusInterface {
     private minimalMode: boolean = false;
     private debugMode: LogLevel = LogLevel.info;
 
-    constructor(private context: vscode.ExtensionContext, private extensionPath: string, private jacToolCommand: string) {
+    constructor(private context: vscode.ExtensionContext, viewProvider: JaculusViewProvider, private extensionPath: string, private jacToolCommand: string) {
+        this.viewProvider = viewProvider;
+        
         this.selectedComPort = this.context.globalState.get(ContextKey.selectedComPort) || null; // if com port is selected from previous session, find it
         this.selectedSocket = this.context.globalState.get(ContextKey.selectedSocket) || null; // if socket is selected from previous session, find it
         this.selectedSocketMemory = this.context.globalState.get(ContextKey.selectedSocketMemory) || []; // if socket is selected from previous session, find it
@@ -82,9 +89,9 @@ class JaculusInterface {
                 return;
             }
             let ports = this.parseSerialPorts(stdout);
-            let items = ports.map(port => ({ label: port.path, description: port.manufacturer }));
-            items.push({ label: "Socket", description: "Enter IP and port of your Jaculus device" });
-            items = [...items, ...this.selectedSocketMemory.map(socket => ({ label: socket, description: "Previously selected socket" }))];
+            let items = ports.map(port => ({ label: port.path, description: port.manufacturer, type: 'port' }));
+            items.push({ label: "Socket", description: "Enter IP and port of your Jaculus device", type: 'socket' });
+            items = [...items, ...this.selectedSocketMemory.map(socket => ({ label: socket, description: "Previously selected socket", type: 'socket' }))];
 
             // show quick pick menu with available ports and Socket option
             vscode.window.showQuickPick(items).then(async selected => {
@@ -121,6 +128,8 @@ class JaculusInterface {
                     this.context.globalState.update(ContextKey.selectedSocket, this.selectedSocket);
                     this.lastSelectedConnection = ConectionType.socket;
 
+                    this.viewProvider.updateConnectionStatus("connected", undefined, this.selectedSocket);
+
                     // Save selected socket to memory (max 5)
                     if (this.selectedSocketMemory.includes(this.selectedSocket)) {
                         // If socket is already in memory, remove it
@@ -142,6 +151,12 @@ class JaculusInterface {
                     this.selectedComPort = selected.label;
                     this.context.globalState.update(ContextKey.selectedComPort, selected.label);
                     this.lastSelectedConnection = ConectionType.comPort;
+
+                    if (selected.type === 'socket') {
+                        this.viewProvider.updateConnectionStatus("connected", undefined, this.selectedComPort);
+                    } else {
+                        this.viewProvider.updateConnectionStatus("connected", this.selectedComPort, undefined);
+                    }
                 }
                 this.context.globalState.update(ContextKey.lastSelectedConnection, this.lastSelectedConnection);
                 this.updateSelectedPortMenu();
@@ -153,9 +168,11 @@ class JaculusInterface {
         if (this.lastSelectedConnection === ConectionType.comPort) {
             this.selectComPortBtn && (this.selectComPortBtn.text = this.getButtonText("$(plug) COM: ", this.selectedComPort!.replace('/dev/tty.', '')));
             vscode.window.showInformationMessage(`Selected COM port: ${this.selectedComPort}`);
+            this.viewProvider.updateConnectionStatus("connected", this.selectedComPort, undefined);
         } else if (this.lastSelectedConnection === ConectionType.socket) {
             this.selectComPortBtn && (this.selectComPortBtn.text = this.getButtonText("$(plug) Socket: ", this.selectedSocket!));
             vscode.window.showInformationMessage(`Selected Socket: ${this.selectedSocket}`);
+            this.viewProvider.updateConnectionStatus("connected", undefined, this.selectedSocket);
         } else {
             this.selectComPortBtn && (this.selectComPortBtn.text = this.getButtonText("$(plug)", "Select Port"));
         }
@@ -257,6 +274,8 @@ class JaculusInterface {
         vscode.window.showQuickPick(items).then(selected => {
             if (selected) {
                 this.debugMode = LogLevel[selected as keyof typeof LogLevel];
+
+                this.viewProvider.updateLogLevel(this.debugMode);
             }
         });
     }
@@ -555,20 +574,6 @@ class JaculusInterface {
         this.selectComPortBtn.color = color;
         this.selectComPortBtn.show();
 
-        let buildBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-        buildBtn.command = "jaculus.Build";
-        buildBtn.text = this.getButtonText("$(database)", "Build");
-        buildBtn.tooltip = "Jaculus Build";
-        buildBtn.color = color;
-        buildBtn.show();
-
-        let flashBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-        flashBtn.command = "jaculus.Flash";
-        flashBtn.text = this.getButtonText("$(zap)", "Flash");
-        flashBtn.tooltip = "Jaculus Flash";
-        flashBtn.color = color;
-        flashBtn.show();
-
         let monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         monitorBtn.command = "jaculus.Monitor";
         monitorBtn.text = this.getButtonText("$(device-desktop)", "Monitor");
@@ -582,27 +587,6 @@ class JaculusInterface {
         buildFlashMonitorBtn.tooltip = "Jaculus Build, Flash and Monitor";
         buildFlashMonitorBtn.color = color;
         buildFlashMonitorBtn.show();
-
-        let configWiFiBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-        configWiFiBtn.command = "jaculus.ConfigWiFi";
-        configWiFiBtn.text = this.getButtonText("$(rss)", "WiFi");
-        configWiFiBtn.tooltip = "Jaculus Config WiFi";
-        configWiFiBtn.color = color;
-        configWiFiBtn.show();
-
-        let startBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-        startBtn.command = "jaculus.Start";
-        startBtn.text = this.getButtonText("$(play-circle)", "");
-        startBtn.tooltip = "Jaculus Start";
-        startBtn.color = color;
-        startBtn.show();
-
-        let stopBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-        stopBtn.command = "jaculus.Stop";
-        stopBtn.text = this.getButtonText("$(stop-circle)", "");
-        stopBtn.tooltip = "Jaculus Stop";
-        stopBtn.color = color;
-        stopBtn.show();
 
         this.context.subscriptions.push(
             vscode.commands.registerCommand('jaculus.SelectComPort', () => this.selectPort()),
@@ -626,6 +610,27 @@ class JaculusInterface {
     }
 }
 
+function updateConfigContext() {
+    const hasConfig = checkForTsConfigInRoot();
+    vscode.commands.executeCommand('setContext', 'jaculus.hasProject', hasConfig);
+}
+
+function checkForTsConfigInRoot(): boolean {
+    if (!vscode.workspace.workspaceFolders) {
+        return false;
+    }
+    
+    // Check only the root of each workspace folder
+    for (const folder of vscode.workspace.workspaceFolders) {
+        const tsconfigPath = path.join(folder.uri.fsPath, 'tsconfig.json');
+        if (fs.existsSync(tsconfigPath)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -635,9 +640,23 @@ export async function activate(context: vscode.ExtensionContext) {
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "jaculus" is now active!');
 
-    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+    updateConfigContext();
+    const watcher = vscode.workspace.createFileSystemWatcher("tsconfig.json");
+    watcher.onDidCreate(() => updateConfigContext());
+    watcher.onDidDelete(() => updateConfigContext());
+    context.subscriptions.push(watcher);
+
+    
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0 && checkForTsConfigInRoot()) {
+        const jaculusProvider = new JaculusViewProvider(context);
+    
+        const treeView = vscode.window.createTreeView('jaculusView', {
+            treeDataProvider: jaculusProvider,
+            showCollapseAll: false
+        });
+        context.subscriptions.push(treeView);
         const path = vscode.workspace.workspaceFolders[0].uri.fsPath;
-        const jaculus = new JaculusInterface(context, path, 'npx jac');
+        const jaculus = new JaculusInterface(context, jaculusProvider, path, 'npx jac');
         await jaculus.registerCommands();
     } else {
         // vscode.window.showErrorMessage('Jaculus: No workspace folder found');

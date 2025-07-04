@@ -118,7 +118,24 @@
                 "key": "ctrl+alt+p",
                 "mac": "cmd+ctrl+p"
             }
-        ]
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "jaculus",
+                    "title": "Jaculus",
+                    "icon": "images/logo.png"
+                }
+            ]
+        },
+        "views": {
+            "jaculus": [
+                {
+                    "id": "jaculusView",
+                    "name": "Jaculus"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
