@@ -688,15 +688,17 @@ async function createProject(context: vscode.ExtensionContext) {
         return;
     }
 
-    const terminalJaculus = vscode.window.createTerminal({
-        name: 'Jaculus',
-        message: 'Jaculus Terminal',
-        iconPath: new vscode.ThemeIcon('gear'),
+    exec(`${JAC_TOOL_COMMAND} project-create --package "${packageUrl}" "${projectPath}"`, {cwd: path.dirname(projectPath)}, (error) => {   
+        if (error) {
+            vscode.window.showErrorMessage(`Error creating project: ${error.message}`);
+            return;
+        }
+        
+        // Open the newly created project folder
+        vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath), false)
+        
+        vscode.window.showInformationMessage(`Project ${projectName} created successfully at ${projectPath}`);
     });
-
-    terminalJaculus.show();
-    terminalJaculus.sendText(`${JAC_TOOL_COMMAND} project-create --package ${packageUrl} ${projectPath}`, true);
-    vscode.window.showInformationMessage(`Creating project ${projectName}...`);
 }
 function updateConfigContext() {
     const hasConfig = checkForTsConfigInRoot();
