@@ -41,6 +41,8 @@ export class JaculusViewProvider implements vscode.TreeDataProvider<TreeItem> {
                 return Promise.resolve(this.getWiFiItems());
             case 'settings':
                 return Promise.resolve(this.getSettingsItems());
+            case 'project-management':
+                return Promise.resolve(this.getProjectManagementItems());
             default:
                 return Promise.resolve([]);
         }
@@ -79,19 +81,11 @@ export class JaculusViewProvider implements vscode.TreeDataProvider<TreeItem> {
                 'settings'
             ),
             new TreeItem(
-                'Update Project',
-                vscode.TreeItemCollapsibleState.None,
-                new vscode.ThemeIcon('sync'),
-                'updateProject',
-                '',
-                'Update the current Jaculus project',
-                {
-                    command: 'jaculus.UpdateProject',
-                    title: 'Update Project',
-                    arguments: []
-                }
+                'Project Management',
+                vscode.TreeItemCollapsibleState.Collapsed,
+                new vscode.ThemeIcon('folder'),
+                'project-management'
             )
-
         ];
     }
 
@@ -265,6 +259,32 @@ export class JaculusViewProvider implements vscode.TreeDataProvider<TreeItem> {
         ));
 
         return items
+    }
+
+    private getProjectManagementItems(): TreeItem[] {
+        return [
+            new TreeItem(
+                'Create New Project',
+                vscode.TreeItemCollapsibleState.None,
+                new vscode.ThemeIcon('new-file'),
+                'create-project',
+                'jaculus.CreateProject',
+                'Create a new Jaculus project'
+            ),
+            new TreeItem(
+                'Update Project',
+                vscode.TreeItemCollapsibleState.None,
+                new vscode.ThemeIcon('sync'),
+                'updateProject',
+                '',
+                'Update the current Jaculus project',
+                {
+                    command: 'jaculus.UpdateProject',
+                    title: 'Update Project',
+                    arguments: []
+                }
+            )
+        ];
     }
 
     // Method to update connection status from the main extension
